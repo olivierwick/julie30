@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Original-Aufnahmen aus der Kamera - werden von der Seite nicht gebraucht,
+# die verkleinerten Fassungen liegen als bild*.jpg, tanz*.jpg usw. im Repo.
+IMG_*.JPG
+IMG_*.HEIC
+DSC*.JPG
+DSCN*.jpg
+_DSC*.jpg
+L1000850.JPG
+P1*.jpg
+
+# beim Umbau von Raetsel 6 ersetzt
+tanz2.jpg

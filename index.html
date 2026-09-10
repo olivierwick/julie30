@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Julie</title>
+  <style>
+    @font-face {
+      font-family: "Zurich";
+      src: url("ZurichBT-Regular.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    :root {
+      --schrift: clamp(1.3rem, 5vw, 4.2rem);
+    }
+
+    body {
+      background: #ffffff;
+      color: #ff1a00; /* Fallback ausserhalb P3 */
+      color: color(display-p3 1 0.08 0.02);
+      font-family: "Zurich", Helvetica, "Helvetica Neue", Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow: hidden;
+    }
+
+    /* Cursor bleibt ueberall der normale Pfeil - es ist ein Raetsel */
+    * {
+      cursor: default;
+    }
+
+    /* ---------- Landingpage ---------- */
+
+    /* Am Anfang stehen beide Zeilen mittig uebereinander.
+       Nach dem Klick wandert der Name nach oben links, die 30. nach unten rechts. */
+    #text {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      pointer-events: none;
+      font-size: var(--schrift);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1; /* Zeilenhoehe = Schriftgroesse */
+      white-space: nowrap;
+    }
+
+    #text > span {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      pointer-events: auto;
+      transition: left 0.9s cubic-bezier(0.4, 0, 0.2, 1),
+                  top 0.9s cubic-bezier(0.4, 0, 0.2, 1),
+                  transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #name {
+      width: 9ch;
+      text-align: center;
+      transform: translate(-50%, -100%);
+    }
+
+    #dreissig {
+      transform: translate(-50%, 0);
+    }
+
+    /* Zielpositionen: Name an die obere Kante, 30 an die untere */
+    #text.verteilt #name {
+      top: 0;
+      transform: translate(-50%, 3px);
+    }
+
+    /* Schluss: die beiden Zeilen kommen zurueck und zeigen die Koordinaten */
+    #text {
+      transition: opacity 0.45s ease;
+    }
+
+    #text.verblasst {
+      opacity: 0;
+    }
+
+    #text.ende #name {
+      width: auto;
+    }
+
+    /* am Schluss darf man die Koordinaten markieren und kopieren */
+    #text.ende,
+    #text.ende * {
+      user-select: text;
+      -webkit-user-select: text;
+      cursor: text;
+    }
+
+    #text.verteilt #dreissig {
+      top: 100%;
+      transform: translate(-50%, calc(-100% - 3px));
+    }
+
+    /* Weiter-Pfeil: pfeil2.png ist weiss, deshalb als Maske,
+       damit er die rote Schriftfarbe annimmt. Das Original zeigt nach
+       unten links, -135 Grad drehen ihn nach rechts. */
+    .pfeil {
+      display: inline-block;
+      width: 1.1em;
+      height: 1.1em;
+      vertical-align: middle;
+      background-color: currentColor;
+      -webkit-mask: url("pfeil2.png") center / contain no-repeat;
+      mask: url("pfeil2.png") center / contain no-repeat;
+      transform: rotate(-135deg);
+    }
+
+    /* Hover: das Wort ruettelt kurz um seine Mitte nach links und rechts */
+    .ruettel {
+      display: inline-block;
+      transform-origin: center center;
+    }
+
+    .ruettel:hover {
+      animation: ruetteln 0.35s ease-in-out;
+    }
+
+    @keyframes ruetteln {
+      0%   { transform: translateX(0); }
+      12%  { transform: translateX(-0.07em); }
+      26%  { transform: translateX(0.06em); }
+      40%  { transform: translateX(-0.05em); }
+      54%  { transform: translateX(0.04em); }
+      68%  { transform: translateX(-0.03em); }
+      82%  { transform: translateX(0.02em); }
+      100% { transform: translateX(0); }
+    }
+
+    /* ---------- 3D-Bild ---------- */
+
+    #szene {
+      display: none;
+      position: fixed;
+      inset: 0;
+      align-items: center;
+      justify-content: center;
+      perspective: 1400px;
+      touch-action: none;
+    }
+
+    #szene.aktiv {
+      display: flex;
+      animation: einblenden 1.4s ease;
+    }
+
+    @keyframes einblenden {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    #karte {
+      position: relative;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    #vorne {
+      display: block;
+      width: min(80vw, 70vh * 1.5);
+      max-width: 900px;
+      height: auto;
+      backface-visibility: hidden;
+      box-shadow: 0 0 60px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Rueckseite: gespiegeltes, aufgehelltes Bild */
+    #hinten {
+      position: absolute;
+      inset: 0;
+      transform: rotateY(180deg);
+      backface-visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #hinten img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* Rueckseite gespiegelt */
+      filter: brightness(1.15) saturate(0.55);
+      opacity: 0.6;
+    }
+
+    /* "Weiter" schwebt frei im Raum, ca. 30 cm hinter dem Bild */
+    /* liegt auf der Rueckseite der Karte, dort mittig am rechten Rand.
+       Die Karte ist gedreht, deshalb entspricht links 2% dem rechten Rand. */
+    #weiter {
+      position: absolute;
+      top: 50%;
+      left: 2%;
+      font-family: "Zurich", Helvetica, "Helvetica Neue", Arial, sans-serif;
+      font-size: var(--schrift);
+      letter-spacing: -0.02em;
+      color: #ff1a00; /* Fallback ausserhalb P3 */
+      color: color(display-p3 1 0.08 0.02);
+      white-space: nowrap;
+      transform: translateY(-50%) translateZ(-4px) rotateY(180deg);
+    }
+
+    /* ---------- Raetsel 2: Bilderfolge, Pfeiltaste links ---------- */
+
+    #galerie {
+      display: none;
+      position: fixed;
+      inset: 0;
+      align-items: center;
+      justify-content: center;
+      /* oben und unten Platz fuer die Schrift an den Kanten */
+      padding: calc(var(--schrift) * 1.8) 4vw;
+    }
+
+    #galerie.aktiv {
+      display: flex;
+    }
+
+    /* Rahmen liegt genau auf dem sichtbaren Bild, daran haengt der Pfeil */
+    #galerieRahmen {
+      position: relative;
+      display: inline-block;
+    }
+
+    #galerie img {
+      display: none;
+      max-width: 92vw;
+      max-height: calc(100vh - var(--schrift) * 3.6);
+      width: auto;
+      height: auto;
+      box-shadow: 0 0 60px rgba(0, 0, 0, 0.15);
+    }
+
+    #galerie img.aktiv {
+      display: block;
+    }
+
+    /* Weiter-Knopf, erscheint erst beim letzten Bild */
+    #weiter2 {
+      display: none;
+      position: absolute;
+      right: 2%;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: "Zurich", Helvetica, "Helvetica Neue", Arial, sans-serif;
+      font-size: var(--schrift);
+      letter-spacing: -0.02em;
+      color: #ff1a00; /* Fallback ausserhalb P3 */
+      color: color(display-p3 1 0.08 0.02);
+      white-space: nowrap;
+    }
+
+    #weiter2.aktiv {
+      display: block;
+    }
+
+    /* ---------- Raetsel 3 ---------- */
+
+    #raetsel3,
+    #raetsel4,
+    #raetsel5,
+    #raetsel6,
+    #raetsel7 {
+      display: none;
+      position: fixed;
+      inset: 0;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--schrift);
+      letter-spacing: -0.02em;
+      color: #ff1a00; /* Fallback ausserhalb P3 */
+      color: color(display-p3 1 0.08 0.02);
+      text-align: center;
+      /* oben und unten Platz fuer die Schrift an den Kanten */
+      padding: calc(var(--schrift) * 1.8) 4vw;
+    }
+
+    #raetsel3.aktiv,
+    #raetsel4.aktiv,
+    #raetsel5.aktiv,
+    #raetsel6.aktiv,
+    #raetsel7.aktiv {
+      display: flex;
+    }
+
+    /* ---------- Raetsel 3: arm.png ueber geige.png ueber ganz.png ---------- */
+
+    #stapel {
+      position: relative;
+      display: block;
+    }
+
+    #stapel img {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: 80vw;
+      max-height: calc((100vh - var(--schrift) * 3.6) * 0.8);
+    }
+
+    /* geige.png liegt zwischen ganz.png und arm.png */
+    #stapel img.mitte {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      /* Mitte der freigestellten Geige, damit sie an Ort waechst */
+      transform-origin: 47.46% 47.2%;
+      transition: transform 0.25s ease;
+    }
+
+    #stapel img.mitte.gross {
+      transform: scale(1.02);
+    }
+
+    #stapel img.oben {
+      position: absolute;
+      /* leicht nach links und oben gerueckt */
+      left: -0.4%;
+      top: -2%;
+      width: 100%;
+      height: 100%;
+      /* Drehpunkt: die Schnittkante von arm.png, also der Ellenbogen */
+      transform-origin: 9.94% 67.95%;
+      transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #stapel img.oben.dreh1 { transform: rotate(5deg); }
+    #stapel img.oben.dreh2 { transform: rotate(-5deg); }
+
+    /* unsichtbare Klickflaeche ueber der Geige */
+    #geige {
+      position: absolute;
+      left: 31%;
+      top: 27.4%;
+      width: 33%;
+      height: 39.5%;
+    }
+
+    /* Weiter-Knopf, erscheint nach dem dritten Klick am rechten Bildrand */
+    #weiter3 {
+      display: none;
+      position: absolute;
+      top: 50%;
+      right: 2%;
+      transform: translateY(-50%);
+      font-size: var(--schrift);
+      letter-spacing: -0.02em;
+      color: #ff1a00; /* Fallback ausserhalb P3 */
+      color: color(display-p3 1 0.08 0.02);
+      white-space: nowrap;
+    }
+
+    #weiter3.aktiv {
+      display: block;
+    }
+
+    /* ---------- Raetsel 4: rauszoomen per Scrollen ---------- */
+
+    #raetsel4 {
+      overflow: hidden;
+    }
+
+    /* Der Rahmen hat von Anfang an das Endformat, gezoomt wird nur darin */
+    #zoomRahmen {
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 1800 / 1201;
+      width: min(80vw, calc((100vh - var(--schrift) * 3.6) * 0.8 * 1.4988));
+      max-height: calc((100vh - var(--schrift) * 3.6) * 0.8);
+    }
+
+    #zoomBild {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      image-rendering: pixelated;
+      /* Startausschnitt oben, gleich weit von der Mitte wie vorher unten */
+      transform-origin: 50% 18%;
+      transition: transform 0.12s linear;
+    }
+
+    #weiter4 {
+      display: none;
+      position: absolute;
+      top: 50%;
+      right: 2%;
+      transform: translateY(-50%);
+      font-size: var(--schrift);
+      letter-spacing: -0.02em;
+      color: #ff1a00; /* Fallback ausserhalb P3 */
+      color: color(display-p3 1 0.08 0.02);
+      white-space: nowrap;
+    }
+
+    #weiter4.aktiv {
+      display: block;
+    }
+
+    /* ---------- Tanzbild: tanzen2.png liegt ueber tanzen.png ---------- */
+
+    #tanzRahmen {
+      position: relative;
+      display: inline-block;
+    }
+
+    #tanzRahmen img {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: 92vw;
+      max-height: calc(100vh - var(--schrift) * 3.6);
+    }
+
+    /* das freigestellte Bein, deckungsgleich auf dem Foto */
+    #tanzRahmen {
+      touch-action: none;
+    }
+
+    #tanzBein {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      max-height: none;
+      /* Drehpunkt: die Schnittkante oben, also die Huefte */
+      transform-origin: 66.7% 43.5%; /* die Huefte */
+      transition: transform 0.25s ease;
+    }
+
+    /* liegt ueber Basis und Bein, damit das Bein dahinter verschwindet */
+    #tanzVorn {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      max-height: none;
+      pointer-events: none;
+    }
+
+    /* das andere Bild kommt erst, wenn das Bein ganz hinten ist */
+    #tanzAnders {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      max-height: none;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.9s ease;
+    }
+
+    #tanzAnders.da {
+      opacity: 1;
+    }
+
+    /* unsichtbare Klickflaeche ueber dem Bein */
+    #beinFeld {
+      position: absolute;
+      left: 64%;
+      top: 42.5%;
+      width: 18%;
+      height: 20.5%;
+    }
+
+    #weiter7 {
+      display: none;
+      position: absolute;
+      top: 50%;
+      right: 2%;
+      transform: translateY(-50%);
+      font-size: var(--schrift);
+      letter-spacing: -0.02em;
+      color: #ff1a00; /* Fallback ausserhalb P3 */
+      color: color(display-p3 1 0.08 0.02);
+      white-space: nowrap;
+    }
+
+    #weiter7.aktiv {
+      display: block;
+    }
+
+    /* ---------- Raetsel 6: scharf wird es nur nahe bei der Katze ---------- */
+
+    #katzeRahmen {
+      position: relative;
+      display: inline-block;
+      /* schneidet die weichen Raender des Blurs ab, die Bildkante bleibt scharf */
+      overflow: hidden;
+    }
+
+    #katzeBild {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: 92vw;
+      max-height: calc(100vh - var(--schrift) * 3.6);
+      /* etwas groesser als der Rahmen, damit nur scharfe Bildmitte sichtbar ist */
+      transform: scale(1.08);
+      filter: blur(28px);
+      transition: filter 0.12s linear;
+    }
+
+    #weiter6 {
+      display: none;
+      position: absolute;
+      top: 50%;
+      right: 2%;
+      transform: translateY(-50%);
+      font-size: var(--schrift);
+      letter-spacing: -0.02em;
+      color: #ff1a00; /* Fallback ausserhalb P3 */
+      color: color(display-p3 1 0.08 0.02);
+      white-space: nowrap;
+    }
+
+    #weiter6.aktiv {
+      display: block;
+    }
+
+    /* ---------- Raetsel 5: winziges Bild an der Fingerspitze ---------- */
+
+    #fingerRahmen {
+      position: relative;
+      display: inline-block;
+    }
+
+    #fingerRahmen img {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: 92vw;
+      max-height: calc(100vh - var(--schrift) * 3.6);
+    }
+
+    /* Das zweite und das dritte Bild bilden eine Gruppe: die Gruppe wird als
+       Ganzes von der Fingerspitze aus hochskaliert, das dritte Bild steckt also
+       von Anfang an im zweiten und taucht nicht ploetzlich auf. */
+    #gruppe2 {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      transform-origin: 60.71% 6.43%; /* Spitze des Zeigefingers */
+      transform: scale(0.02);
+      transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #gruppe2.gross {
+      transform: scale(1);
+    }
+
+    #fingerRahmen #gruppe2 img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      max-height: none;
+    }
+
+    /* Das dritte Bild samt seinem Pfeil ist wieder eine Gruppe, die oben auf dem
+       Cola-Flaeschchen sitzt. So steckt auch der Pfeil von Anfang an darin. */
+    #gruppe3 {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      transform-origin: 65.82% 25.05%; /* oben auf dem Flaschenhals */
+      transform: scale(0.02);
+      transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #gruppe3.gross {
+      transform: scale(1);
+    }
+
+    #weiter5 {
+      position: absolute;
+      top: 50%;
+      right: 2%;
+      transform: translateY(-50%);
+      font-size: var(--schrift);
+      letter-spacing: -0.02em;
+      color: #ff1a00; /* Fallback ausserhalb P3 */
+      color: color(display-p3 1 0.08 0.02);
+      white-space: nowrap;
+      /* solange die Gruppe winzig ist, faengt der Pfeil keine Klicks ab */
+      pointer-events: none;
+    }
+
+    #gruppe3.gross #weiter5 {
+      pointer-events: auto;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="text">
+    <span id="name"><span class="ruettel" id="nameWort">Julie</span></span>
+    <span id="dreissig"><span class="ruettel" id="dreissigWort">30</span></span>
+  </div>
+
+  <div id="szene">
+    <div id="karte">
+      <img id="vorne" src="julie.jpg" alt="Julie" draggable="false" />
+      <div id="hinten">
+        <img src="julie.jpg" alt="" draggable="false" />
+      </div>
+      <span id="weiter"><span class="ruettel"><span class="pfeil"></span></span></span>
+    </div>
+  </div>
+
+  <div id="galerie">
+    <div id="galerieRahmen">
+      <img src="bild1.jpg" alt="" draggable="false" />
+      <img src="bild2.jpg" alt="" draggable="false" />
+      <img src="bild3.jpg" alt="" draggable="false" />
+      <img src="bild4.jpg" alt="" draggable="false" />
+      <img src="bild5.jpg" alt="" draggable="false" />
+      <img src="bild6.jpg" alt="" draggable="false" />
+      <span id="weiter2"><span class="ruettel"><span class="pfeil"></span></span></span>
+    </div>
+  </div>
+
+  <div id="raetsel3">
+    <div id="stapel">
+      <img src="ganz.png" alt="" draggable="false" />
+      <img class="mitte" src="geige.png" alt="" draggable="false" />
+      <img class="oben" src="arm.png" alt="" draggable="false" />
+      <div id="geige"></div>
+      <span id="weiter3"><span class="ruettel"><span class="pfeil"></span></span></span>
+    </div>
+  </div>
+
+  <div id="raetsel4">
+    <div id="zoomRahmen">
+      <img id="zoomBild" src="zoom.jpg" alt="" draggable="false" />
+      <span id="weiter4"><span class="ruettel"><span class="pfeil"></span></span></span>
+    </div>
+  </div>
+
+  <div id="raetsel5">
+    <div id="fingerRahmen">
+      <img id="fingerBild" src="finger.jpg" alt="" draggable="false" />
+      <div id="gruppe2">
+        <img id="kleinBild" src="klein.jpg" alt="" draggable="false" />
+        <div id="gruppe3">
+          <img id="kleinBild2" src="cola.jpg" alt="" draggable="false" />
+          <span id="weiter5"><span class="ruettel"><span class="pfeil"></span></span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="raetsel6">
+    <div id="katzeRahmen">
+      <img id="katzeBild" src="raetsel6.jpg" alt="" draggable="false" />
+      <span id="weiter6"><span class="ruettel"><span class="pfeil"></span></span></span>
+    </div>
+  </div>
+
+  <div id="raetsel7">
+    <div id="tanzRahmen">
+      <img id="tanzBasis" src="tanzen.png" alt="" draggable="false" />
+      <img id="tanzBein" src="tanzen2.png" alt="" draggable="false" />
+      <img id="tanzVorn" src="tanzen3.png" alt="" draggable="false" />
+      <img id="tanzAnders" src="tanz1.jpg" alt="" draggable="false" />
+      <div id="beinFeld"></div>
+      <span id="weiter7"><span class="ruettel"><span class="pfeil"></span></span></span>
+    </div>
+  </div>
+
+
+  <script>
+    // ----- Landingpage: Namen rotieren -----
+    const namen = ["Julie", "Schauser", "Schülere"];
+    let i = 0;
+    const el = document.getElementById("nameWort");
+
+    function weiterName() {
+      i = (i + 1) % namen.length;
+      el.textContent = namen[i];
+    }
+
+    const timer = setInterval(weiterName, 12000);
+
+    // ----- zweite Zeile, absichtlich asynchron zur ersten -----
+    const zahlen = ["30", "10’958 Tage", "Drissig"];
+    let j = 0;
+    const el2 = document.getElementById("dreissigWort");
+
+    function weiterZahl() {
+      j = (j + 1) % zahlen.length;
+      el2.textContent = zahlen[j];
+    }
+
+    const timer2 = setInterval(weiterZahl, 15400);
+
+    // ----- Klick: Bild zeigen -----
+    const szene = document.getElementById("szene");
+    const karte = document.getElementById("karte");
+
+    // ----- Reihenfolge der Raetsel an einer Stelle -----
+    // Erst reagiert die Seite auf blosse Mausbewegung, dann aufs Klicken,
+    // dann Ziehen, Scrollen, Tastatur - und zum Schluss das genaue Hinsehen.
+    const ABLAUF = ["katze", "geige", "foto3d", "zoom", "galerie", "tanz", "finger"];
+
+    const BUEHNEN = {
+      katze:   "raetsel6",
+      geige:   "raetsel3",
+      foto3d:  "szene",
+      zoom:    "raetsel4",
+      galerie: "galerie",
+      tanz:    "raetsel7",
+      finger:  "raetsel5"
+    };
+
+    let stufe = -1;
+
+    function naechste() {
+      if (stufe >= 0) {
+        document.getElementById(BUEHNEN[ABLAUF[stufe]]).classList.remove("aktiv");
+      }
+      stufe++;
+      if (stufe >= ABLAUF.length) {
+        schluss();
+        return;
+      }
+      const name = ABLAUF[stufe];
+      document.getElementById(BUEHNEN[name]).classList.add("aktiv");
+      galerieLaeuft = name === "galerie";
+      if (name === "galerie") galerieVorbereiten();
+    }
+
+    // Der Start darf nur ein einziges Mal laufen. Sonst holt ein spaeterer Klick
+    // auf den Namen oder die 30 das erste Raetsel hinter das aktuelle zurueck.
+    let gestartet = false;
+
+    function starten() {
+      if (gestartet) return;
+      gestartet = true;
+      document.getElementById("text").classList.add("verteilt");
+      // das erste Raetsel kommt schon waehrend der Bewegung der Schrift
+      naechste();
+    }
+
+    document.getElementById("name").addEventListener("click", starten);
+    document.getElementById("dreissig").addEventListener("click", starten);
+
+    // ----- Drag zum Drehen im Raum -----
+    let rotX = 0, rotY = 0;
+    let letzteX = 0, letzteY = 0;
+    let startX = 0, startY = 0;
+    let zieht = false;
+    let bewegt = false;
+
+    function zeichnen() {
+      karte.style.transform = "rotateX(" + rotX + "deg) rotateY(" + rotY + "deg)";
+    }
+    zeichnen();
+
+    const knopf = document.getElementById("weiter");
+    let startZiel = null;
+
+    szene.addEventListener("pointerdown", (e) => {
+      zieht = true;
+      bewegt = false;
+      startZiel = e.target;
+      letzteX = startX = e.clientX;
+      letzteY = startY = e.clientY;
+      szene.setPointerCapture(e.pointerId);
+    });
+
+    szene.addEventListener("pointermove", (e) => {
+      if (!zieht) return;
+      rotY += (e.clientX - letzteX) * 0.35;
+      rotX -= (e.clientY - letzteY) * 0.35;
+      rotX = Math.max(-85, Math.min(85, rotX));
+      letzteX = e.clientX;
+      letzteY = e.clientY;
+      if (Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5) bewegt = true;
+      zeichnen();
+    });
+
+    function loslassen(e) {
+      if (!zieht) return;
+      zieht = false;
+      if (szene.hasPointerCapture(e.pointerId)) szene.releasePointerCapture(e.pointerId);
+      // Klick auf "Weiter" nur, wenn nicht gedreht wurde
+      if (!bewegt && startZiel && knopf.contains(startZiel)) {
+        naechste();
+      }
+    }
+
+    szene.addEventListener("pointerup", loslassen);
+    szene.addEventListener("pointercancel", loslassen);
+
+    // ----- Raetsel 2: mit der Pfeiltaste links durch die Bilder -----
+    const galerie = document.getElementById("galerie");
+    const bilder = galerie.querySelectorAll("img");
+    let bildNr = 0;
+    let galerieLaeuft = false;
+
+    function galerieVorbereiten() {
+      bildNr = 0;
+      bilder.forEach((b, k) => b.classList.toggle("aktiv", k === 0));
+      document.getElementById("weiter2").classList.remove("aktiv");
+    }
+
+    const knopf2 = document.getElementById("weiter2");
+
+    document.addEventListener("keydown", (e) => {
+      if (!galerieLaeuft || e.key !== "ArrowLeft") return;
+      if (bildNr >= bilder.length - 1) return; // beim letzten Bild ist Schluss
+      e.preventDefault();
+      bilder[bildNr].classList.remove("aktiv");
+      bildNr++;
+      bilder[bildNr].classList.add("aktiv");
+      // beim letzten Bild taucht der Weiter-Knopf auf
+      knopf2.classList.toggle("aktiv", bildNr === bilder.length - 1);
+    });
+
+    knopf2.addEventListener("click", naechste);
+
+    // ----- Klick auf die Geige dreht den Arm um die Bogenspitze -----
+    const armBild = document.querySelector("#stapel img.oben");
+    let armStufe = 0;
+
+    // erster Klick in die eine Richtung, zweiter in die andere, danach im Wechsel
+    // Hover ueber der Geige laesst sie leicht wachsen
+    const geigeBild = document.querySelector("#stapel img.mitte");
+    const geigeFeld = document.getElementById("geige");
+    geigeFeld.addEventListener("mouseenter", () => geigeBild.classList.add("gross"));
+    geigeFeld.addEventListener("mouseleave", () => geigeBild.classList.remove("gross"));
+
+    let armKlicks = 0;
+    const knopf3 = document.getElementById("weiter3");
+
+    document.getElementById("geige").addEventListener("click", () => {
+      armStufe = armStufe % 2 + 1;
+      armBild.classList.remove("dreh1", "dreh2");
+      armBild.classList.add("dreh" + armStufe);
+
+      // nach dem dritten Strich erscheint der Weiter-Knopf
+      armKlicks++;
+      if (armKlicks >= 3) knopf3.classList.add("aktiv");
+    });
+
+    knopf3.addEventListener("click", naechste);
+
+    // ----- Raetsel 4: extrem reingezoomt, per Scrollen wieder heraus -----
+    const raetsel4 = document.getElementById("raetsel4");
+    const zoomBild = document.getElementById("zoomBild");
+    const knopf4 = document.getElementById("weiter4");
+    const ZOOM_START = 40;
+    let zoom = ZOOM_START;
+
+    function zoomZeichnen() {
+      zoomBild.style.transform = "scale(" + zoom.toFixed(3) + ")";
+    }
+    zoomZeichnen();
+
+    window.addEventListener("wheel", (e) => {
+      if (!raetsel4.classList.contains("aktiv")) return;
+      e.preventDefault();
+      zoom *= e.deltaY > 0 ? 0.92 : 1.087;
+      zoom = Math.max(1, Math.min(ZOOM_START, zoom));
+      zoomZeichnen();
+      // ganz herausgezoomt: der Weiter-Knopf erscheint
+      if (zoom <= 1.01) knopf4.classList.add("aktiv");
+    }, { passive: false });
+
+    knopf4.addEventListener("click", naechste);
+
+    // ----- Raetsel 5: erst die Fingerspitze, dann das Cola-Flaeschchen -----
+    const kleinBild = document.getElementById("kleinBild");
+    const kleinBild2 = document.getElementById("kleinBild2");
+
+    const gruppe2 = document.getElementById("gruppe2");
+    const gruppe3 = document.getElementById("gruppe3");
+
+    kleinBild.addEventListener("click", () => {
+      gruppe2.classList.add("gross"); // kein Zurueck
+    });
+
+    kleinBild2.addEventListener("click", () => {
+      if (!gruppe2.classList.contains("gross")) return;
+      gruppe3.classList.add("gross");
+    });
+
+    document.getElementById("weiter5").addEventListener("click", naechste);
+
+    // ----- Raetsel 6: je naeher der Zeiger an der Katze, desto schaerfer -----
+    const raetsel6 = document.getElementById("raetsel6");
+    const katzeBild = document.getElementById("katzeBild");
+    const knopf6 = document.getElementById("weiter6");
+
+    // ---- hier justieren ----
+    const KATZE_X = 0.53;   // Zielpunkt waagrecht: 0 = linker Bildrand, 1 = rechter
+    const KATZE_Y = 0.68;    // Zielpunkt senkrecht: 0 = oben, 1 = unten
+    const MAX_BLUR = 28;     // Unschaerfe in px, wenn man weit weg ist
+    const NAH = 0.04;        // Trefferradius (Anteil der Bildbreite) - dann geloest
+    const FERN = 0.55;       // ab diesem Abstand maximal unscharf
+    const KATZE_MARKE = false; // auf true setzen: zeigt den Zielpunkt als roten Punkt
+
+    let katzeGeloest = false;
+
+    // Hilfspunkt zum Justieren
+    if (KATZE_MARKE) {
+      const marke = document.createElement("div");
+      marke.style.cssText = "position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;" +
+        "border-radius:50%;background:#f00;z-index:5;pointer-events:none;" +
+        "left:" + (KATZE_X * 100) + "%;top:" + (KATZE_Y * 100) + "%;";
+      document.getElementById("katzeRahmen").appendChild(marke);
+    }
+
+    document.addEventListener("mousemove", (e) => {
+      if (!raetsel6.classList.contains("aktiv") || katzeGeloest) return;
+      const r = katzeBild.getBoundingClientRect();
+      const dx = (e.clientX - (r.left + r.width * KATZE_X)) / r.width;
+      const dy = (e.clientY - (r.top + r.height * KATZE_Y)) / r.width; // beide auf die Breite bezogen
+      const d = Math.hypot(dx, dy);
+
+      const t = Math.max(0, Math.min(1, (d - NAH) / (FERN - NAH)));
+      katzeBild.style.filter = "blur(" + (t * MAX_BLUR).toFixed(2) + "px)";
+
+      // einmal am Kopf angekommen bleibt es scharf und der Pfeil stehen
+      if (d <= NAH) {
+        katzeGeloest = true;
+        katzeBild.style.filter = "blur(0px)";
+        knopf6.classList.add("aktiv");
+      }
+    });
+
+    knopf6.addEventListener("click", naechste);
+
+    // ----- Tanzbild: das Bein mit der Maus ganz nach hinten ziehen -----
+    const tanzRahmen = document.getElementById("tanzRahmen");
+    const tanzBein = document.getElementById("tanzBein");
+    const tanzAnders = document.getElementById("tanzAnders");
+    const knopf7 = document.getElementById("weiter7");
+
+    const HUEFTE_X = 0.667;   // Drehpunkt im Bild, wie im CSS
+    const HUEFTE_Y = 0.435;
+    // Das Bein zeigt im Foto Richtung 4:40 Uhr (rund 49 Grad). Bis 7 Uhr
+    // (120 Grad) sind es also etwa 71 Grad Drehung.
+    const BEIN_MAX = 85;      // so weit laesst sich das Bein ziehen
+    const BEIN_ZIEL = 71;     // ab hier zeigt es auf 7 Uhr
+
+    let beinWinkel = 0;
+    let beinZieht = false;
+    let beinStartZeiger = 0;  // Zeigerwinkel beim Anfassen
+    let beinStartWinkel = 0;
+    let beinFertig = false;
+
+    let beinGross = false;
+
+    function beinZeichnen() {
+      tanzBein.style.transform =
+        "rotate(" + beinWinkel.toFixed(2) + "deg) scale(" + (beinGross ? 1.02 : 1) + ")";
+    }
+
+    // Hover ueber dem Bein laesst es leicht wachsen, wie die Geige
+    const beinFeld = document.getElementById("beinFeld");
+    beinFeld.addEventListener("mouseenter", () => { beinGross = true; beinZeichnen(); });
+    beinFeld.addEventListener("mouseleave", () => { beinGross = false; beinZeichnen(); });
+
+    function zeigerWinkel(e) {
+      const r = tanzRahmen.getBoundingClientRect();
+      const dx = e.clientX - (r.left + r.width * HUEFTE_X);
+      const dy = e.clientY - (r.top + r.height * HUEFTE_Y);
+      return Math.atan2(dy, dx) * 180 / Math.PI;
+    }
+
+    beinFeld.addEventListener("pointerdown", (e) => {
+      if (beinFertig) return;
+      beinZieht = true;
+      tanzBein.style.transition = "none"; // Ziehen soll direkt folgen
+      beinStartZeiger = zeigerWinkel(e);
+      beinStartWinkel = beinWinkel;
+      tanzRahmen.setPointerCapture(e.pointerId);
+    });
+
+    tanzRahmen.addEventListener("pointermove", (e) => {
+      if (!beinZieht) return;
+      const neuerWinkel = beinStartWinkel + (zeigerWinkel(e) - beinStartZeiger);
+      beinWinkel = Math.max(0, Math.min(BEIN_MAX, neuerWinkel));
+      beinZeichnen();
+
+      if (beinWinkel >= BEIN_ZIEL) {
+        // ganz hinten: das andere Bild und der Pfeil kommen dazu
+        beinFertig = true;
+        beinZieht = false;
+        tanzBein.style.transition = "";
+        beinWinkel = BEIN_MAX;
+        beinZeichnen();
+        tanzAnders.classList.add("da");
+        knopf7.classList.add("aktiv");
+      }
+    });
+
+    function beinLoslassen(e) {
+      beinZieht = false;
+      tanzBein.style.transition = "";
+      if (tanzRahmen.hasPointerCapture(e.pointerId)) tanzRahmen.releasePointerCapture(e.pointerId);
+    }
+
+    tanzRahmen.addEventListener("pointerup", beinLoslassen);
+    tanzRahmen.addEventListener("pointercancel", beinLoslassen);
+
+    // ----- Schluss: die Zeilen fahren zusammen und zeigen den Treffpunkt -----
+    knopf7.addEventListener("click", naechste);
+
+    function schluss() {
+      // die Namen hoeren auf zu wechseln
+      clearInterval(timer);
+      clearInterval(timer2);
+
+      const text = document.getElementById("text");
+      text.classList.remove("verteilt"); // beide fahren in die Mitte zurueck
+
+      setTimeout(() => {
+        text.classList.add("verblasst");
+        setTimeout(() => {
+          document.getElementById("nameWort").textContent = "47.5582° N";
+          document.getElementById("dreissigWort").textContent = "7.5865° E";
+          text.classList.add("ende");
+          text.classList.remove("verblasst");
+          text.title = "Milo's Cookies, Andreasplatz 17, 4051 Basel";
+        }, 450);
+      }, 900);
+    }
+
+    // Klick auf die Koordinaten oeffnet Google Maps - ausser man hat gerade markiert
+    document.getElementById("text").addEventListener("click", () => {
+      const text = document.getElementById("text");
+      if (!text.classList.contains("ende")) return;
+      if (String(window.getSelection())) return; // Auswahl nicht durch Klick stoeren
+      window.open(
+        "https://www.google.com/maps/search/?api=1&query=47.5582479,7.5865477",
+        "_blank",
+        "noopener"
+      );
+    });
+  </script>
+</body>
+</html>
