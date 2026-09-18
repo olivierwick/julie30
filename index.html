@@ -25,6 +25,8 @@
 
     :root {
       --schrift: clamp(1.3rem, 5vw, 4.2rem);
+      /* Pfeilform, 200 x 200, aus pfeil2.png nachgemessen */
+      --pfeil-form: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M0 0H38V134.5L141 31.5 168 4.5 195 31.5 64.5 162H200V200H20L0 180Z'/%3E%3C/svg%3E");
     }
 
     body {
@@ -113,17 +115,19 @@
       transform: translate(-50%, calc(-100% - 3px));
     }
 
-    /* Weiter-Pfeil: pfeil2.png ist weiss, deshalb als Maske,
-       damit er die rote Schriftfarbe annimmt. Das Original zeigt nach
-       unten links, -135 Grad drehen ihn nach rechts. */
+    /* Weiter-Pfeil als Maske, damit er die rote Schriftfarbe annimmt.
+       Die Form ist die von pfeil2.png, aber als Vektor: das PNG hatte an
+       allen Kanten eine halbtransparente Kontur, die als zweiter, blasser
+       Pfeil durchschien. Das Original zeigt nach unten links,
+       -135 Grad drehen ihn nach rechts. */
     .pfeil {
       display: inline-block;
       width: 1.1em;
       height: 1.1em;
       vertical-align: middle;
       background-color: currentColor;
-      -webkit-mask: url("pfeil2.png") center / contain no-repeat;
-      mask: url("pfeil2.png") center / contain no-repeat;
+      -webkit-mask: var(--pfeil-form) center / contain no-repeat;
+      mask: var(--pfeil-form) center / contain no-repeat;
       transform: rotate(-135deg);
     }
 
@@ -403,7 +407,9 @@
       image-rendering: pixelated;
       /* Startausschnitt oben, gleich weit von der Mitte wie vorher unten */
       transform-origin: 50% 18%;
-      transition: transform 0.12s linear;
+      /* keine CSS-Transition: die Bewegung wird im Script Bild fuer Bild
+         geglaettet, sonst springt es bei schnellen Scroll-Ereignissen */
+      will-change: transform;
     }
 
     #weiter4 {
@@ -889,21 +895,62 @@
     const zoomBild = document.getElementById("zoomBild");
     const knopf4 = document.getElementById("weiter4");
     const ZOOM_START = 40;
-    let zoom = ZOOM_START;
+    // Gezoomt wird logarithmisch: gleicher Scrollweg = gleiche gefuehlte
+    // Veraenderung, egal ob man gerade weit drin oder fast draussen ist.
+    const ZOOM_PRO_PX = 0.0012;       // Scrollweg in px -> Veraenderung von ln(zoom)
+    const ZOOM_SCHRITT_MAX = 100;     // ein einzelnes Rad-Ereignis zaehlt hoechstens so viel
+    const ZOOM_TRAEGHEIT = 0.12;      // Sekunden, bis die Anzeige dem Ziel weitgehend folgt
+    const LOG_MAX = Math.log(ZOOM_START);
+
+    let zoomZiel = LOG_MAX;           // wohin gescrollt wurde
+    let zoomIst = LOG_MAX;            // was gerade angezeigt wird
+    let zoomLaeuft = false;
+    let zoomZeit = 0;
 
     function zoomZeichnen() {
-      zoomBild.style.transform = "scale(" + zoom.toFixed(3) + ")";
+      zoomBild.style.transform = "scale(" + Math.exp(zoomIst).toFixed(4) + ")";
     }
     zoomZeichnen();
+
+    // naehert die Anzeige Bild fuer Bild dem Ziel an, unabhaengig von der Bildrate
+    function zoomSchritt(jetzt) {
+      const dt = Math.min(0.1, (jetzt - zoomZeit) / 1000);
+      zoomZeit = jetzt;
+      const k = 1 - Math.exp(-dt / ZOOM_TRAEGHEIT);
+      zoomIst += (zoomZiel - zoomIst) * k;
+
+      if (Math.abs(zoomZiel - zoomIst) < 0.0005) {
+        zoomIst = zoomZiel;
+        zoomLaeuft = false;
+      } else {
+        requestAnimationFrame(zoomSchritt);
+      }
+      zoomZeichnen();
+    }
+
+    function zoomStarten() {
+      if (zoomLaeuft) return;
+      zoomLaeuft = true;
+      zoomZeit = performance.now();
+      requestAnimationFrame(zoomSchritt);
+    }
 
     window.addEventListener("wheel", (e) => {
       if (!raetsel4.classList.contains("aktiv")) return;
       e.preventDefault();
-      zoom *= e.deltaY > 0 ? 0.92 : 1.087;
-      zoom = Math.max(1, Math.min(ZOOM_START, zoom));
-      zoomZeichnen();
+
+      // Firefox meldet je nach System Zeilen oder Seiten statt Pixel
+      let delta = e.deltaY;
+      if (e.deltaMode === 1) delta *= 16;
+      else if (e.deltaMode === 2) delta *= window.innerHeight;
+      delta = Math.max(-ZOOM_SCHRITT_MAX, Math.min(ZOOM_SCHRITT_MAX, delta));
+
+      zoomZiel -= delta * ZOOM_PRO_PX;
+      zoomZiel = Math.max(0, Math.min(LOG_MAX, zoomZiel));
+      zoomStarten();
+
       // ganz herausgezoomt: der Weiter-Knopf erscheint
-      if (zoom <= 1.01) knopf4.classList.add("aktiv");
+      if (zoomZiel <= 0.01) knopf4.classList.add("aktiv");
     }, { passive: false });
 
     knopf4.addEventListener("click", naechste);
