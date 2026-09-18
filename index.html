@@ -25,8 +25,6 @@
 
     :root {
       --schrift: clamp(1.3rem, 5vw, 4.2rem);
-      /* Pfeilform, 200 x 200, aus pfeil2.png nachgemessen */
-      --pfeil-form: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M0 0H38V134.5L141 31.5 168 4.5 195 31.5 64.5 162H200V200H20L0 180Z'/%3E%3C/svg%3E");
     }
 
     body {
@@ -115,30 +113,48 @@
       transform: translate(-50%, calc(-100% - 3px));
     }
 
-    /* Weiter-Pfeil als Maske, damit er die rote Schriftfarbe annimmt.
-       Die Form ist die von pfeil2.png, aber als Vektor: das PNG hatte an
-       allen Kanten eine halbtransparente Kontur, die als zweiter, blasser
-       Pfeil durchschien. Das Original zeigt nach unten links,
-       -135 Grad drehen ihn nach rechts. */
+    /* Weiter-Pfeil: inline SVG in der Schriftfarbe. Absichtlich keine
+       CSS-Maske - Safari zeichnet maskierte Elemente in animierten oder
+       3D-gedrehten Umgebungen mit einer Geisterkopie. Die Form ist die von
+       pfeil2.png, nachgemessen; sie zeigt nach unten links, -135 Grad
+       drehen sie nach rechts. */
     .pfeil {
       display: inline-block;
       width: 1.1em;
       height: 1.1em;
       vertical-align: middle;
-      background-color: currentColor;
-      -webkit-mask: var(--pfeil-form) center / contain no-repeat;
-      mask: var(--pfeil-form) center / contain no-repeat;
+      fill: currentColor;
       transform: rotate(-135deg);
     }
 
-    /* Hover: das Wort ruettelt kurz um seine Mitte nach links und rechts */
+    /* Hover: das Wort ruettelt kurz um seine Mitte nach links und rechts.
+       Der Hover liegt auf dem unbeweglichen Halter, nicht auf dem Wort selbst:
+       sonst rutscht das Wort beim Ruetteln unter dem Zeiger weg, verliert den
+       Hover, springt zurueck, faengt neu an - und zittert zwischen zwei
+       Positionen, was wie ein zweiter Pfeil darunter aussieht. */
     .ruettel {
       display: inline-block;
       transform-origin: center center;
     }
 
-    .ruettel:hover {
+    :hover > .ruettel {
       animation: ruetteln 0.35s ease-in-out;
+    }
+
+    /* Feste Trefferflaeche am Halter: deckt den gedrehten Pfeil, dessen Spitze
+       ueber die Box hinausragt, samt Ruettelweg ab, damit der Hover stabil bleibt */
+    #name::before,
+    #dreissig::before,
+    #weiter::before,
+    #weiter2::before,
+    #weiter3::before,
+    #weiter4::before,
+    #weiter5::before,
+    #weiter6::before,
+    #weiter7::before {
+      content: "";
+      position: absolute;
+      inset: -0.3em;
     }
 
     @keyframes ruetteln {
@@ -648,7 +664,7 @@
       <div id="hinten">
         <img src="julie.jpg" alt="" draggable="false" />
       </div>
-      <span id="weiter"><span class="ruettel"><span class="pfeil"></span></span></span>
+      <span id="weiter"><span class="ruettel"><svg class="pfeil" viewBox="0 0 200 200" aria-hidden="true"><path d="M0 0H38V134.5L141 31.5 168 4.5 195 31.5 64.5 162H200V200H20L0 180Z"/></svg></span></span>
     </div>
   </div>
 
@@ -660,7 +676,7 @@
       <img src="bild4.jpg" alt="" draggable="false" />
       <img src="bild5.jpg" alt="" draggable="false" />
       <img src="bild6.jpg" alt="" draggable="false" />
-      <span id="weiter2"><span class="ruettel"><span class="pfeil"></span></span></span>
+      <span id="weiter2"><span class="ruettel"><svg class="pfeil" viewBox="0 0 200 200" aria-hidden="true"><path d="M0 0H38V134.5L141 31.5 168 4.5 195 31.5 64.5 162H200V200H20L0 180Z"/></svg></span></span>
     </div>
   </div>
 
@@ -670,14 +686,14 @@
       <img class="mitte" src="geige.png" alt="" draggable="false" />
       <img class="oben" src="arm.png" alt="" draggable="false" />
       <div id="geige"></div>
-      <span id="weiter3"><span class="ruettel"><span class="pfeil"></span></span></span>
+      <span id="weiter3"><span class="ruettel"><svg class="pfeil" viewBox="0 0 200 200" aria-hidden="true"><path d="M0 0H38V134.5L141 31.5 168 4.5 195 31.5 64.5 162H200V200H20L0 180Z"/></svg></span></span>
     </div>
   </div>
 
   <div id="raetsel4">
     <div id="zoomRahmen">
       <img id="zoomBild" src="zoom.jpg" alt="" draggable="false" />
-      <span id="weiter4"><span class="ruettel"><span class="pfeil"></span></span></span>
+      <span id="weiter4"><span class="ruettel"><svg class="pfeil" viewBox="0 0 200 200" aria-hidden="true"><path d="M0 0H38V134.5L141 31.5 168 4.5 195 31.5 64.5 162H200V200H20L0 180Z"/></svg></span></span>
     </div>
   </div>
 
@@ -688,7 +704,7 @@
         <img id="kleinBild" src="klein.jpg" alt="" draggable="false" />
         <div id="gruppe3">
           <img id="kleinBild2" src="cola.jpg" alt="" draggable="false" />
-          <span id="weiter5"><span class="ruettel"><span class="pfeil"></span></span></span>
+          <span id="weiter5"><span class="ruettel"><svg class="pfeil" viewBox="0 0 200 200" aria-hidden="true"><path d="M0 0H38V134.5L141 31.5 168 4.5 195 31.5 64.5 162H200V200H20L0 180Z"/></svg></span></span>
         </div>
       </div>
     </div>
@@ -697,7 +713,7 @@
   <div id="raetsel6">
     <div id="katzeRahmen">
       <img id="katzeBild" src="raetsel6.jpg" alt="" draggable="false" />
-      <span id="weiter6"><span class="ruettel"><span class="pfeil"></span></span></span>
+      <span id="weiter6"><span class="ruettel"><svg class="pfeil" viewBox="0 0 200 200" aria-hidden="true"><path d="M0 0H38V134.5L141 31.5 168 4.5 195 31.5 64.5 162H200V200H20L0 180Z"/></svg></span></span>
     </div>
   </div>
 
@@ -708,7 +724,7 @@
       <img id="tanzVorn" src="tanzen3.png" alt="" draggable="false" />
       <img id="tanzAnders" src="tanz1.jpg" alt="" draggable="false" />
       <div id="beinFeld"></div>
-      <span id="weiter7"><span class="ruettel"><span class="pfeil"></span></span></span>
+      <span id="weiter7"><span class="ruettel"><svg class="pfeil" viewBox="0 0 200 200" aria-hidden="true"><path d="M0 0H38V134.5L141 31.5 168 4.5 195 31.5 64.5 162H200V200H20L0 180Z"/></svg></span></span>
     </div>
   </div>
 
